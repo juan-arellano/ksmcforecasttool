@@ -2,6 +2,7 @@ library(shiny)
 library(httr)
 library(jsonlite)
 library(dplyr)
+library(anytime)
 
 query <- "https://api.float.com/v3/people"
 getdata<-GET(url = query, user_agent("Juan's Data Pull (juan.arellano@orrfellowship.org)"), add_headers(Authorization = "Bearer 14b4584fab7e7d93Wgwo6Ma6E+7qS9WmNgsZEsx8OEcZWJmonzI4Ck5E9A4="))
@@ -12,12 +13,14 @@ query <- "https://api.float.com/v3/tasks?start_date=2020-10-15&end_date=2020-10-
 getdata<-GET(url = query, user_agent("Juan's Data Pull (juan.arellano@orrfellowship.org)"), add_headers(Authorization = "Bearer 14b4584fab7e7d93Wgwo6Ma6E+7qS9WmNgsZEsx8OEcZWJmonzI4Ck5E9A4="))
 sched = fromJSON(content(getdata,type="text"))
 
+sched$start_date <- anydate(as.factor(sched$start_date))
+
 team_load = aggregate(hours ~ start_date, sched, sum)
 
 df$people_id
 df$name
 
-weeks <- c('Week 1', 'Week 2')
+
 
 juan <- subset(sched, people_id == 17452182)
 amrutha <- subset(sched, people_id == 17452186)
@@ -34,83 +37,22 @@ Sandip_load = aggregate(hours ~ start_date, sandip, sum)
 
 
 # Define UI for application that draws a histogram
-ui <- pageWithSidebar(
-  headerPanel('KSMC Forecast Tool'),
-  sidebarPanel(
-    uiOutput("filter_degree")
-    
-  ),
-  mainPanel(
-    uiOutput('plot')
-    
-  )
+ui <- fluidPage(
+  radioButtons("hours", "Choose Department or Person:",
+               c("Data Science Team","Juan", "Amrutha", "Alexa", "Hannah", "Sandip")),
+  plotOutput("hourPlot")
 )
 
-# Define server logic required to draw a histogram
-server <- function(input, output, session) {
-  output$filter_degree<-renderUI({
-    radioButtons("rd","Select Option",choices = c("Data Science Overall Team","Juan",'Amrutha', 'Hannah', 'Alexa', 'Sandip'),
-                 selected = "Data Science Overall Team")
+server <- function(input, output) {
+  output$hourPlot <- renderPlot({
+    switch(input$hours,
+           "Data Science Team" = plot(team_load$start_date, team_load$hours, type = "b",main="Data Science Overall Team",xlab="Date Week Starts With", ylab="Hours per Day", pch=19),
+           "Juan" = plot(Juan_load$start_date, Juan_load$hours, main="Juan Arellano", type = "b", xlab="Date Week Starts With ", ylab="Hours per Day", pch=19),
+           "Amrutha" = plot(Amrutha_load$start_date, Amrutha_load$hours, type = "b", main="Amrutha Wheeler",xlab="Date Week Starts With ", ylab="Hours per Day", pch=19),
+           "Alexa" = plot(Alexa_load$start_date, Alexa_load$hours, type = "b", main="Alexa Kovacs", xlab="Date Week Starts With ", ylab="Hours per Day", pch=19),
+           "Hannah" = plot(Hannah_load$start_date, Hannah_load$hours, type = "b", main="Hannah King",xlab="Date Week Starts With ", ylab="Hours per Day", pch=19),
+           "Sandip" = plot(Sandip_load$start_date, Sandip_load$hours, type = "b", main="Sandip Biswas",xlab="Date Week Starts With ", ylab="Hours per Day", pch=19))
   })
-  
-  
-  output$plot <- renderUI({
-    if(input$rd=="Data Science Overall Team"){
-      output$plot1<-renderPlot({
-        
-        plot(team_load$start_date, team_load$hours, main="Data Science Overall Team",
-             xlab="Date Week Starts With", ylab="Hours per Day", pch=19)
-      })
-      plotOutput("plot1")
-    }
-    
-    
-    else if(input$rd=="Juan"){
-      output$plot2<-renderUI({
-        
-        plot(Juan_load$start_date, Juan_load$hours, main="Juan Arellano",
-             xlab="Date Week Starts With ", ylab="Hours per Day", pch=19)
-      })
-      plotOutput("plot2")
-    }
-    
-    else if(input$rd=="Amrutha"){
-      output$plot3<-renderUI({
-        
-        plot(Juan_load$start_date, Amrutha_load$hours, main="Amrutha Wheeler",
-             xlab="Date Week Starts With ", ylab="Hours per Day", pch=19)
-      })
-      plotOutput("plot3")
-    }
-    
-    else if(input$rd=="Hannah"){
-      output$plot4<-renderUI({
-        
-        plot(Juan_load$start_date, Hannah_load$hours, main="Hannah King",
-             xlab="Date Week Starts With ", ylab="Hours per Day", pch=19)
-      })
-      plotOutput("plot4")
-    }
-    
-    else if(input$rd=="Alexa"){
-      output$plot5<-renderUI({
-        
-        plot(Juan_load$start_date, Alexa_load$hours, main="Alexa Kovacs",
-             xlab="Date Week Starts With ", ylab="Hours per Day", pch=19)
-      })
-      plotOutput("plot5")
-    }
-    
-    else if(input$rd=="Sandip"){
-      output$plot6<-renderUI({
-        
-        plot(Juan_load$start_date, Sandip_load$hours, main="Sandip Biswas",
-             xlab="Date Week Starts With ", ylab="Hours per Day", pch=19)
-      })
-      plotOutput("plot6")
-    }
-  })
-  
 }
 
 shinyApp(ui = ui, server = server)
