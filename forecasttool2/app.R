@@ -6,7 +6,7 @@ library(lubridate)
 library(xts)
 library(forecast)
 
-float <- read_csv("/Users/jarellano/Downloads/float-people-20201022-124011-84d.csv", skip = 5)
+float <- read_csv("/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool2/float-people-20201022-124011-84d.csv", skip = 5)
 float <- as.data.frame(float)
 float <- float[!(is.na(float$`Job Title`)), ]
 float <- float[ -c(4:8) ]
@@ -22,7 +22,7 @@ float_by_jobrole$job_role_and_department <- paste(float_by_jobrole$`Job Title`, 
 rownames(float_by_jobrole) <- float_by_jobrole$job_role_and_department
 
 
-connectwise <- read_csv("/Users/jarellano/OneDrive - KSM Consulting/PM Data/TimeEntry2.csv", trim_ws = TRUE)
+connectwise <- read_csv("/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool2/TimeEntry2.csv", trim_ws = TRUE)
 df = as.data.frame(connectwise)
 df$Name <- paste(df$First_Name, df$Last_Name)
 df <- df[ -c(1:3) ]
@@ -113,7 +113,7 @@ server <- function(input, output) {
         
         ggplot(person_transpose) + 
             geom_col(aes(x = Date, y = DailyHours), size = 1, color = "darkblue", fill = "darkblue") +
-            geom_line(aes(x = Date, y = Capacity), size = 1.5, color="green", group = 1)
+            geom_line(aes(x = Date, y = Capacity), size = 1.5, color="red", group = 1)
     })
     
     output$ConnectWisePlot <- renderPlot({
@@ -124,6 +124,7 @@ server <- function(input, output) {
       y = ts(connectwise_person_data$`Billable Hours`, start=c(2020, yday(min_date)), frequency=365)
       fit <- ets(y)
       plot(forecast(fit, h=input$ahead))
+      abline(h = 8, col="red")
     })
     
     output$jobRolePlot <- renderPlot({
@@ -142,7 +143,7 @@ server <- function(input, output) {
         
         ggplot(jobrole_transpose) + 
             geom_col(aes(x = Date, y = DailyHours), size = 1, color = "darkblue", fill = "darkblue") +
-            geom_line(aes(x = Date, y = Capacity), size = 1.5, color="green", group = 1)
+            geom_line(aes(x = Date, y = Capacity), size = 1.5, color="red", group = 1)
     })
     
 
