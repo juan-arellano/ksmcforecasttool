@@ -38,6 +38,8 @@ Sandip_load = aggregate(hours ~ start_date, sandip, sum)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
+  headerPanel("KSMC Hourly Forecast Tool"),
+  
   radioButtons("hours", "Choose Department or Person:",
                c("Data Science Team","Juan", "Amrutha", "Alexa", "Hannah", "Sandip")),
   plotOutput("hourPlot")
