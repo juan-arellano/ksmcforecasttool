@@ -1,3 +1,5 @@
+rm(list = ls())
+
 library(tidyverse)
 library(shiny)
 library(dplyr)
@@ -6,11 +8,12 @@ library(lubridate)
 library(xts)
 library(forecast)
 
-float <- read_csv("/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool2/float-people-20201022-124011-84d.csv", skip = 5)
+float <- read_csv("/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool2/float-people-20201025-200708-84d.csv", skip = 5)
 float <- as.data.frame(float)
 float <- float[!(is.na(float$`Job Title`)), ]
 float <- float[ -c(4:8) ]
 float <- aggregate( float[,4:87], float[,1:3], FUN = sum )
+
 
 float_by_employee <- float[,-1]
 rownames(float_by_employee) <- float[,1]
@@ -60,9 +63,6 @@ ui <- fluidPage(
             selectInput("person_id2", "Choose a Person:", 
                         choices=connectwise_names),
             
-            helpText("Please select how many months you would like to forecast ahead by."),
-            numericInput("ahead", "Months to Forecast Ahead:", 12),
-            
             hr(),
             h2("Team Hours"),
             
@@ -82,16 +82,21 @@ ui <- fluidPage(
         
         # Create a spot for the barplot
         mainPanel(
-            
             tabsetPanel(
                 tabPanel("Float Individual Forecasted Hours", plotOutput("phonePlot")), 
                 tabPanel("ConnectWise Individual Forecasted Hours", plotOutput("ConnectWisePlot")),
-                tabPanel("Team Hours", plotOutput("jobRolePlot"))
+                #tabPanel("Float Team Hours", plotOutput("jobRolePlot"))
+                
+                tabPanel("Float Team Hours",
+                         fluidRow(
+                           plotOutput("jobRolePlot"),
+                           tableOutput('table'))
+                ))
             )
         )
         
     )
-)
+
 
 server <- function(input, output) {
   
@@ -112,8 +117,8 @@ server <- function(input, output) {
         person_transpose <- subset(person_transpose, Date >= input$daterange[1] & Date <= input$daterange[2])
         
         ggplot(person_transpose) + 
-            geom_col(aes(x = Date, y = DailyHours), size = 1, color = "darkblue", fill = "darkblue") +
-            geom_line(aes(x = Date, y = Capacity), size = 1.5, color="red", group = 1)
+            geom_col(aes(x = Date, y = DailyHours), size = 1, color = "grey", fill = "grey") +
+            geom_line(aes(x = Date, y = Capacity), size = 1.5, color="black", group = 1)
     })
     
     output$ConnectWisePlot <- renderPlot({
@@ -121,10 +126,19 @@ server <- function(input, output) {
       connectwise_person_data <- connectwise_person_data[ -c(1) ]
       colnames(connectwise_person_data) <- c("Date","Billable Hours")
       min_date = min(connectwise_person_data[,1])
+      #y = ts(connectwise_person_data$`Billable Hours`, start=c(2020, yday(min_date)), frequency=365)
+      #fit <- ets(y)
+      #plot(forecast(fit, h=input$ahead))
+      #abline(h = 8, col="red")
+      
       y = ts(connectwise_person_data$`Billable Hours`, start=c(2020, yday(min_date)), frequency=365)
-      fit <- ets(y)
-      plot(forecast(fit, h=input$ahead))
-      abline(h = 8, col="red")
+      fit <- auto.arima(y)
+      plot(forecast(fit, 10), xaxt="n", ylim=c(0, 12))
+      print(accuracy(forecast(fit, 10)))
+      a = seq(as.Date(min_date), by="weeks", length=11)
+      axis(1, at = decimal_date(a), labels = format(a, "%Y %b %d"), cex.axis=0.6)
+      abline(v = decimal_date(a), col='grey', lwd=0.5)
+      abline(h = 8, col="black")
     })
     
     output$jobRolePlot <- renderPlot({
@@ -142,11 +156,19 @@ server <- function(input, output) {
         jobrole_transpose <- subset(jobrole_transpose, Date >= input$daterange2[1] & Date <= input$daterange2[2])
         
         ggplot(jobrole_transpose) + 
-            geom_col(aes(x = Date, y = DailyHours), size = 1, color = "darkblue", fill = "darkblue") +
-            geom_line(aes(x = Date, y = Capacity), size = 1.5, color="red", group = 1)
+            geom_col(aes(x = Date, y = DailyHours), size = 1, color = "grey", fill = "grey") +
+            geom_line(aes(x = Date, y = Capacity), size = 1.5, color="black", group = 1)
     })
     
-
+    output$table <- output$table1 <- renderTable({
+      jobrole_data <- subset(float_by_jobrole, rownames(float_by_jobrole) == input$job_id)
+      Job_title = tail(names(sort(table(jobrole_data$`Job Title`))), 1)
+      Department = tail(names(sort(table(jobrole_data$`Department`))), 1)
+      employee_table <- subset(float_by_employee, (float_by_employee$Department == Department) & (float_by_employee$`Job Title` == Job_title))
+      employee_table <- employee_table[ c(1:2) ]
+      employee_table['Name'] <- rownames(employee_table)
+      return(employee_table)
+    })
 }
 
 # Run the application 
