@@ -5,6 +5,6 @@ account: juan-arellano
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3175494
-bundleId: 3829060
+bundleId: 3838805
 url: https://juan-arellano.shinyapps.io/forecasttool3/
-when: 1604691009.10199
+when: 1604948533.14251

@@ -3,7 +3,7 @@ rm(list = ls())
 library(tidyverse)
 library(dplyr)
 
-float <- read_csv("/Users/jarellano/Desktop/float-people-20201106-134128-376d.csv", skip = 5)
+#float <- read_csv("/Users/jarellano/Desktop/float-people-20201106-134128-376d.csv", skip = 5)
 float <- as.data.frame(float)
 float <- float[!(is.na(float$`Job Title`)), ]
 float <- float[ -c(4:8) ]
@@ -17,7 +17,7 @@ float_by_jobrole['Capacity'] = 8
 float_by_jobrole$`Job Title` <- paste(float$`Job Title`, " - ", float$`Department`)
 float_by_jobrole <- aggregate( float_by_jobrole[,3:4], float_by_jobrole[,1:2], FUN = sum )
 
-connectwise <- read_csv("/Users/jarellano/Desktop/TimeEntries3.csv", trim_ws = TRUE)
+#connectwise <- read_csv("/Users/jarellano/Desktop/TimeEntries3.csv", trim_ws = TRUE)
 connectwise <- connectwise[ , c(3:6)]
 colnames(connectwise) <- c("first_Name","last_Name", "Date", "billable_Hours")
 connectwise$Name <- paste(connectwise$first_Name, connectwise$last_Name)

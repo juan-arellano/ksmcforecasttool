@@ -57,12 +57,26 @@ ui <- fluidPage(
                            separator = " - "),
             hr(),
             
-            h2("Float and ConnectWise Compared Hours"),
+            h2("Float and ConnectWise Compared Hours - Individual"),
             selectInput("person_id3", "Choose a Person:", 
                         choices= unique(float$Name)),
             
             
             dateRangeInput("daterange3", "Date range:",
+                           start  = "2020-01-01",
+                           end    = "2021-01-10",
+                           min    = "2020-01-01",
+                           max    = "2021-01-10",
+                           format = "mm/dd/yy",
+                           separator = " - "),
+            
+            hr(),
+            
+            h2("Float and ConnectWise Compared Hours - Team"),
+            selectInput("team_id", "Choose a Team:", 
+                        choices= unique(float$Department)),
+            
+            dateRangeInput("daterange4", "Date range:",
                            start  = "2020-01-01",
                            end    = "2021-01-10",
                            min    = "2020-01-01",
@@ -83,10 +97,15 @@ ui <- fluidPage(
                              plotOutput("jobRolePlot"),
                              tableOutput('table'))
                 ), 
-                tabPanel("Float and Connectwise Forecasted vs Actual", 
+                tabPanel("Float and Connectwise Forecasted vs Actual - Individual", 
                          fluidRow(
                              plotOutput("fcwPlot"),
-                             tableOutput('table2'))))
+                             tableOutput('table2'))),
+            
+                tabPanel("Float and Connectwise Forecasted vs Actual - Team", 
+                         fluidRow(
+                             plotOutput("fcwPlot2"),
+                             tableOutput('table3'))))
         )
     )
     
@@ -137,7 +156,7 @@ server <- function(input, output) {
         y = ts(connectwise_person_data$`Billable Hours`, start=c(2020, yday(min_date)), frequency=365)
         fit <- auto.arima(y)
         plot(forecast(fit, 10), xaxt="n", ylim=c(0, 12))
-        a = seq(as.Date("2010-15-10"), by="weeks", length=11)
+        a = seq(as.Date(min_date), by="weeks", length=11)
         axis(1, at = decimal_date(a), labels = format(a, "%Y %b %d"), cex.axis=0.6)
         abline(v = decimal_date(a), col='orange', lwd=0.5)
         abline(h = 8, col="blue")
@@ -158,7 +177,9 @@ server <- function(input, output) {
     
     
     output$table <- renderTable({
-        employee_table <- subset(float_by_jobrole, float_by_jobrole$`Job Title` == input$job_id)
+        employee_table <- float
+        employee_table$`Job Title` <- paste(employee_table$`Job Title`, " - ", employee_table$`Department`)
+        employee_table <- subset(employee_table, employee_table$`Job Title` == input$job_id)
         employee_table <- employee_table[ c(1:2) ]
         employee_table <- unique(employee_table)
         return(employee_table)
@@ -220,6 +241,71 @@ server <- function(input, output) {
         return(error_table)
     })
     
+    output$fcwPlot2 <- renderPlot({
+        
+        team_data <- subset(float, float$Department == input$team_id)
+        team_data <- team_data[ -c(2) ]
+        team_data['Capacity'] = 8
+        connectwise_team_data <- connectwise[(connectwise$Name %in% team_data$Name), ]
+        newdf <- inner_join(connectwise_team_data, team_data, by=c("Date", "Name"))
+        newdf$Date <- as.POSIXlt(newdf$Date,format="%Y-%m-%d")
+        newdf <- newdf[ -c(4) ]
+        
+        #newdf <- newdf %>%
+        #group_by(Name, Date) %>%
+        #mutate(x <- na.interp(x))    
+        #proof <- newdf %>%
+        #group_by(Name, Date) %>%
+        #na.interp(x)
+        #proof <- newdf %>%
+        #group_by(Name) %>%
+        #mutate(ValueInterp = na.interp(x))
+        #min_date = min(connectwise_person_data$Date)
+        
+        newdf <- newdf %>% 
+            group_by(Date) %>%
+            summarise(across(c(x, float_Billable_Hours, Capacity), sum))
+        
+        newdf$Date <- ymd(newdf$Date)
+        
+        newdf <- subset(newdf, Date >= input$daterange4[1] & Date <= input$daterange4[2])
+        
+        ggplot(newdf, aes(x=Date)) + 
+            geom_line(aes(y = x), color = "blue") + 
+            geom_line(aes(y = float_Billable_Hours), color="orange") +
+            ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
+            xlab('Date') + # for the x axis label
+            ylab('ConnectWise Hours (Blue), Float Hours(Orange)')
+    })
+    
+    output$table3 <- renderTable({
+        
+        team_data <- subset(float, float$Department == input$team_id)
+        team_data <- team_data[ -c(2) ]
+        team_data['Capacity'] = 8
+        connectwise_team_data <- connectwise[(connectwise$Name %in% team_data$Name), ]
+        newdf <- inner_join(connectwise_team_data, team_data, by=c("Date", "Name"))
+        newdf$Date <- as.POSIXlt(newdf$Date,format="%Y-%m-%d")
+        newdf <- newdf[ -c(4) ]
+        newdf <- newdf %>% 
+            group_by(Date) %>%
+            summarise(across(c(x, float_Billable_Hours, Capacity), sum))
+        
+        newdf$Date <- ymd(newdf$Date)
+        min_date = as.Date(min(newdf$Date))
+        max_date = as.Date(max(newdf$Date))
+        
+        newdf <- subset(newdf, Date >= input$daterange4[1] & Date <= input$daterange4[2])
+        newdf <- subset(newdf, Date >= min_date & Date <= max_date)
+        MeanSquaredError <- mse(newdf$x, newdf$float_Billable_Hours)
+        RootMeanSquaredError <- rmse(newdf$x, newdf$float_Billable_Hours)
+        
+        metric <- c('Mean Squared Error','Root Mean Squared Error')
+        value <- c(MeanSquaredError, RootMeanSquaredError)
+        error_table <- data.frame(metric, value)
+        
+        return(error_table)
+    })
 }
 
 # Run the application 
