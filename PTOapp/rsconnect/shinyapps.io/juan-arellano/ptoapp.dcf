@@ -1,0 +1,10 @@
+name: ptoapp
+title:
+username:
+account: juan-arellano
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3161856
+bundleId: 3828901
+url: https://juan-arellano.shinyapps.io/ptoapp/
+when: 1604687384.61315

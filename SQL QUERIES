@@ -1,0 +1,43 @@
+# ORIGINAL SQL QUERY
+SELECT [Member_RecID]
+      ,[BusGroup]
+      ,[Company_Name]
+      ,[Date_Start]
+      ,[Billable_Hrs]
+      ,[Billable_Flag]
+      ,[Charge_Code]
+    FROM [cwdbwh].[dbo].[dw_time_before_job_run]
+    WHERE BusGroup IN ('Data', 'Business Applications');
+
+# NEW SQL QUERY FOR ALL TIME ENTRIES ALL TIME
+    SELECT [Time_RecID]
+      ,pbi.time.[Member_RecID]
+       , First_Name
+       , Last_Name
+      ,[Company_Name]
+      ,[Date_Start]
+      ,[Billable_Hrs]
+      ,[NonBillable_Hrs]
+      ,[Billable_Flag]
+      ,[Hours_Actual]
+      ,[Charge_Code]
+    FROM [cwdbwh].[pbi].[time]
+LEFT JOIN Member 
+ON pbi.time.Member_RecID = member.Member_RecID
+
+# PTO
+SELECT time.member_recid
+, first_name
+, last_name
+, annualpto
+    , sum(hours_actual) as pto_used
+FROM pbi.time
+  left join member
+  on member.member_recid = pbi.time.member_recid
+  left join pbi.pto_annual
+  on pbi.time.Member_RecID = pto_annual.Member_RecID
+WHERE charge_code ='PTO'
+    and Date_Start > '20191231'
+    and Date_start < '20210101'
+GROUP BY time.member_recid, first_name, last_name, annualpto
+ORDER BY last_name

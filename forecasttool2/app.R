@@ -7,12 +7,14 @@ library(data.table)
 library(lubridate)
 library(xts)
 library(forecast)
+library(prophet)
 
-float <- read_csv("/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool2/float-people-20201025-200708-84d.csv", skip = 5)
+
+float <- read_csv("/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool2/float-people-20201103-100700-397d.csv", skip = 5)
 float <- as.data.frame(float)
 float <- float[!(is.na(float$`Job Title`)), ]
 float <- float[ -c(4:8) ]
-float <- aggregate( float[,4:87], float[,1:3], FUN = sum )
+float <- aggregate( float[,4:370], float[,1:3], FUN = sum )
 
 
 float_by_employee <- float[,-1]
@@ -20,7 +22,7 @@ rownames(float_by_employee) <- float[,1]
 
 float_by_jobrole <- float[ -c(1) ]
 float_by_jobrole['Capacity'] = 8
-float_by_jobrole <- aggregate( float_by_jobrole[,3:87], float_by_jobrole[,1:2], FUN = sum )
+float_by_jobrole <- aggregate( float_by_jobrole[,3:370], float_by_jobrole[,1:2], FUN = sum )
 float_by_jobrole$job_role_and_department <- paste(float_by_jobrole$`Job Title`, " - ", float_by_jobrole$`Department`)
 rownames(float_by_jobrole) <- float_by_jobrole$job_role_and_department
 
@@ -35,6 +37,7 @@ df$Date_Start = as.Date(df$Date_Start,format="%m/%d/%Y")
 df$Date_Start <- ymd(df$Date_Start)
 df <-aggregate(df, by = list(df$Date_Start ,df$Name),  FUN=sum)
 connectwise_names <- unique(df[,1])
+
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(    
@@ -86,12 +89,13 @@ ui <- fluidPage(
                 tabPanel("Float Individual Forecasted Hours", plotOutput("phonePlot")), 
                 tabPanel("ConnectWise Individual Forecasted Hours", plotOutput("ConnectWisePlot")),
                 #tabPanel("Float Team Hours", plotOutput("jobRolePlot"))
-                
+          
                 tabPanel("Float Team Hours",
                          fluidRow(
                            plotOutput("jobRolePlot"),
                            tableOutput('table'))
-                ))
+                ), 
+                tabPanel("Float and Connectwise Forecasted vs Actual", plotOutput("fcwPlot")))
             )
         )
         
@@ -126,10 +130,7 @@ server <- function(input, output) {
       connectwise_person_data <- connectwise_person_data[ -c(1) ]
       colnames(connectwise_person_data) <- c("Date","Billable Hours")
       min_date = min(connectwise_person_data[,1])
-      #y = ts(connectwise_person_data$`Billable Hours`, start=c(2020, yday(min_date)), frequency=365)
-      #fit <- ets(y)
-      #plot(forecast(fit, h=input$ahead))
-      #abline(h = 8, col="red")
+      
       
       y = ts(connectwise_person_data$`Billable Hours`, start=c(2020, yday(min_date)), frequency=365)
       fit <- auto.arima(y)
@@ -168,6 +169,30 @@ server <- function(input, output) {
       employee_table <- employee_table[ c(1:2) ]
       employee_table['Name'] <- rownames(employee_table)
       return(employee_table)
+    })
+    
+    output$fcwPlot <- renderPlot({
+      person_data <- subset(float_by_employee, rownames(float_by_employee) == input$person_id)
+      person_data <- person_data[ -c(1:2) ]
+      person_transpose <- as.data.frame(t(as.matrix(person_data)))
+      person_transpose$Date <- rownames(person_transpose)
+      colnames(person_transpose) <- c("DailyHours","Date")
+      person_transpose$Date <- dmy(person_transpose$Date)
+      person_transpose['Capacity'] = 8
+      
+      connectwise_person_data <- subset(df, df$Name == input$person_id2)
+      connectwise_person_data <- connectwise_person_data[ -c(1) ]
+      colnames(connectwise_person_data) <- c("Date","Billable Hours")
+      min_date = min(connectwise_person_data[,1])
+      
+      newdf <- left_join(connectwise_person_data, person_transpose, by=c("Date"))
+      ggplot(newdf, aes(x=Date)) + 
+        geom_line(aes(y = `Billable Hours`), color = "black") + 
+        geom_line(aes(y = DailyHours), color="grey") +
+        ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
+        xlab('Date') + # for the x axis label
+        ylab('ConnectWise Hours (Black), Float Hours(Gray)') # for the y axis label
+      
     })
 }
 
