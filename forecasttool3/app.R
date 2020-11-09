@@ -1,11 +1,13 @@
 library(tidyverse)
 library(shiny)
+library(shinymanager)
+#library(shinyjs)
 library(dplyr)
 library(data.table)
 library(lubridate)
 library(xts)
 library(forecast)
-library(prophet)
+#library(prophet)
 library(tidyr)
 library(Metrics)
 library(rsconnect)
@@ -14,18 +16,43 @@ float <- read_csv("float.csv")
 float_by_jobrole <- read_csv("float_by_jobrole.csv")
 connectwise <- read_csv("connectwise.csv")
 
+credentials <- data.frame(
+    user = c("jarellano", "awheeler", "mschwarz"), # mandatory
+    password = c("ksmc1234", "728hb43m", "6uten4zu") # mandatory
+    #start = c("2019-04-15"), # optinal (all others)
+    #expire = c(NA, "2019-12-31"),
+    #admin = c(FALSE, TRUE),
+    #comment = "Simple and secure authentification mechanism 
+  #for single ‘Shiny’ applications.",
+    #stringsAsFactors = FALSE
+)
+
+#user_base <- data.frame(
+    #user = c("jarellano", "awheeler", "mschwarz"),
+    #password = c("pass1", "pass2", "pass3"), 
+    #permissions = c("admin", "standard", "standard"),
+    #name = c("Juan", "Amrutha", "Michael"),
+    #stringsAsFactors = FALSE
+#)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(    
+    
+    # must turn shinyjs on
+    #shinyjs::useShinyjs(),
+    # add logout button UI 
+    # add login panel UI function
+    #shinyauthr::loginUI(id = "login"),
+
     
     # Give the page a title
     titlePanel("DDS Forecasting Tool"),
     
     # Generate a row with a sidebar
-    sidebarLayout(      
-        
+    sidebarLayout( 
         # Define the sidebar with one input
         sidebarPanel(
+        
             h2("Float Individual Forecasted Hours"),
             selectInput("person_id", "Choose a Person:", 
                         choices= unique(float$Name)),
@@ -111,11 +138,39 @@ ui <- fluidPage(
     
 )
 
+ui <- secure_app(ui)
 
 server <- function(input, output) {
+    # call the server part
+    # check_credentials returns a function to authenticate users
+    res_auth <- secure_server(
+        check_credentials = check_credentials(credentials)
+    )
+    
+    output$auth_output <- renderPrint({
+        reactiveValuesToList(res_auth)
+    })
+    
+    # call the logout module with reactive trigger to hide/show
+    #logout_init <- callModule(shinyauthr::logout, 
+                              #id = "logout", 
+                              #active = reactive(credentials()$user_auth))
+    
+    # call login module supplying data frame, user and password cols
+    # and reactive trigger
+    #credentials <- callModule(shinyauthr::login, 
+                              #id = "login", 
+                              #data = user_base,
+                              #user_col = user,
+                              #pwd_col = password,
+                              #log_out = reactive(logout_init()))
+    
+    # pulls out the user information returned from login module
+    #user_data <- reactive({credentials()$info})
     
         
     output$googleSheet <- renderUI({
+        #req(credentials()$user_auth)
             tags$iframe(id = "googleSheet",
                         src = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeNg9nC_d-wNDFelmGwDuh2BAxxzkEvD3IA3VZmMc7AJ0Q-DGdx-bDlrx5KK87ZV9e558LNSyy5xHd/pubhtml?gid=0&amp;single=true&amp;widget=true&amp;headers=false",
                         width = 1024,
@@ -126,7 +181,7 @@ server <- function(input, output) {
     
     # Fill in the spot we created for a plot
     output$phonePlot <- renderPlot({
-        
+        #req(credentials()$user_auth)
         # Filter to person of interest
         person_data <- subset(float, float$Name == input$person_id)
         person_data['Capacity'] = 8
@@ -141,7 +196,7 @@ server <- function(input, output) {
     })
     
     output$ConnectWisePlot <- renderPlot({
-        
+        #req(credentials()$user_auth)
         connectwise_person_data <- subset(connectwise, connectwise$Name == input$person_id2)
         connectwise_person_data <- connectwise_person_data[ -c(1) ]
         colnames(connectwise_person_data) <- c("Date","Billable Hours")
@@ -164,7 +219,7 @@ server <- function(input, output) {
     })
     
     output$jobRolePlot <- renderPlot({
-        
+        #req(credentials()$user_auth)
         # Filter to person of interest
         
         jobrole_data <- subset(float_by_jobrole, float_by_jobrole$`Job Title` == input$job_id)
@@ -177,6 +232,7 @@ server <- function(input, output) {
     
     
     output$table <- renderTable({
+        #req(credentials()$user_auth)
         employee_table <- float
         employee_table$`Job Title` <- paste(employee_table$`Job Title`, " - ", employee_table$`Department`)
         employee_table <- subset(employee_table, employee_table$`Job Title` == input$job_id)
@@ -187,7 +243,7 @@ server <- function(input, output) {
     
     
     output$fcwPlot <- renderPlot({
-        
+        #req(credentials()$user_auth)
         person_data <- subset(float, float$Name == input$person_id3)
         person_data <- person_data[ -c(1:3) ]
         person_data['Capacity'] = 8
@@ -214,6 +270,8 @@ server <- function(input, output) {
     })
     
     output$table2 <- renderTable({
+        #req(credentials()$user_auth)
+        
         person_data <- subset(float, float$Name == input$person_id3)
         person_data <- person_data[ -c(1:3) ]
         
@@ -242,7 +300,7 @@ server <- function(input, output) {
     })
     
     output$fcwPlot2 <- renderPlot({
-        
+        #req(credentials()$user_auth)
         team_data <- subset(float, float$Department == input$team_id)
         team_data <- team_data[ -c(2) ]
         team_data['Capacity'] = 8
@@ -279,7 +337,7 @@ server <- function(input, output) {
     })
     
     output$table3 <- renderTable({
-        
+        #req(credentials()$user_auth)
         team_data <- subset(float, float$Department == input$team_id)
         team_data <- team_data[ -c(2) ]
         team_data['Capacity'] = 8
