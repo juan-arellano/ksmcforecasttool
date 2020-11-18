@@ -35,6 +35,8 @@ credentials <- data.frame(
     #stringsAsFactors = FALSE
 #)
 
+
+
 # Define UI for application that draws a histogram
 ui <- fluidPage(    
     
@@ -58,8 +60,8 @@ ui <- fluidPage(
                         choices= unique(float$Name)),
             
             dateRangeInput("daterange", "Date range:",
-                           start  = "2020-01-01",
-                           end    = "2021-01-10",
+                           start  = "2020-10-05",
+                           end    = "2020-10-19",
                            min    = "2020-01-01",
                            max    = "2021-01-10",
                            format = "mm/dd/yy",
@@ -76,8 +78,8 @@ ui <- fluidPage(
                         choices= unique(float_by_jobrole$`Job Title`)),
             
             dateRangeInput("daterange2", "Date range:",
-                           start  = "2020-01-01",
-                           end    = "2021-01-10",
+                           start  = "2020-10-05",
+                           end    = "2020-10-19",
                            min    = "2020-01-01",
                            max    = "2021-01-10",
                            format = "mm/dd/yy",
@@ -90,8 +92,8 @@ ui <- fluidPage(
             
             
             dateRangeInput("daterange3", "Date range:",
-                           start  = "2020-01-01",
-                           end    = "2021-01-10",
+                           start  = "2020-10-05",
+                           end    = "2020-10-19",
                            min    = "2020-01-01",
                            max    = "2021-01-10",
                            format = "mm/dd/yy",
@@ -104,8 +106,8 @@ ui <- fluidPage(
                         choices= unique(float$Department)),
             
             dateRangeInput("daterange4", "Date range:",
-                           start  = "2020-01-01",
-                           end    = "2021-01-10",
+                           start  = "2020-10-05",
+                           end    = "2020-10-19",
                            min    = "2020-01-01",
                            max    = "2021-01-10",
                            format = "mm/dd/yy",
@@ -261,12 +263,28 @@ server <- function(input, output) {
         
         newdf <- subset(newdf, Date >= input$daterange3[1] & Date <= input$daterange3[2])
         
-        ggplot(newdf, aes(x=Date)) + 
-            geom_line(aes(y = `Connectwise Billable Hours`), color = "blue") + 
-            geom_line(aes(y = float_Billable_Hours), color="orange") +
-            ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
-            xlab('Date') + # for the x axis label
-            ylab('ConnectWise Hours (Blue), Float Hours(Orange)')
+        #ggplot(newdf, aes(x=Date)) + 
+            #geom_line(aes(y = `Connectwise Billable Hours`), color = "blue") + 
+            #geom_line(aes(y = float_Billable_Hours), color="orange") +
+            #ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
+            #xlab('Date') + # for the x axis label
+            #ylab('ConnectWise Hours (Blue), Float Hours(Orange)')
+        
+        agg <- newdf
+        agg$Week <- as.Date(cut(agg$Date,breaks = "week",start.on.monday = TRUE))
+        
+        
+        agg <- agg %>% 
+          group_by(Week) %>%
+          summarise(across(c(`Connectwise Billable Hours`, float_Billable_Hours, Capacity), sum))
+        
+        
+        ggplot(agg, aes(as.Date(Week), agg)) + scale_x_date() +
+          geom_line(aes(y = `Connectwise Billable Hours`), color = "blue") + 
+          geom_line(aes(y = float_Billable_Hours), color="orange") +
+          ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
+          xlab('Date') + # for the x axis label
+          ylab('ConnectWise Hours (Blue), Float Hours(Orange)')
     })
     
     output$table2 <- renderTable({
@@ -289,14 +307,23 @@ server <- function(input, output) {
         newdf <- subset(newdf, Date >= input$daterange3[1] & Date <= input$daterange3[2])
         newdf <- subset(newdf, Date >= min_date & Date <= max_date)
         newdf[is.na(newdf)] = 0
-        MeanSquaredError <- mse(newdf$"Connectwise Billable Hours", newdf$float_Billable_Hours)
-        RootMeanSquaredError <- rmse(newdf$"Connectwise Billable Hours", newdf$float_Billable_Hours)
         
-        metric <- c('Mean Squared Error','Root Mean Squared Error')
-        value <- c(MeanSquaredError, RootMeanSquaredError)
-        error_table <- data.frame(metric, value)
+        #MeanSquaredError <- mse(newdf$"Connectwise Billable Hours", newdf$float_Billable_Hours)
+        #RootMeanSquaredError <- rmse(newdf$"Connectwise Billable Hours", newdf$float_Billable_Hours)
         
-        return(error_table)
+        #metric <- c('Mean Squared Error','Root Mean Squared Error')
+        #value <- c(MeanSquaredError, RootMeanSquaredError)
+        #error_table <- data.frame(metric, value)
+        
+        #return(error_table)
+        
+        #req(credentials()$user_auth)
+        
+        colnames(newdf) <- c("Date","ConnectWise Hours", "Float Hours")
+        newdf$Date <- ymd(newdf$Date)
+        newdf$Date <- as.character(newdf$Date)
+        newdf <- unique(newdf)
+        return(newdf)
     })
     
     output$fcwPlot2 <- renderPlot({
@@ -328,12 +355,30 @@ server <- function(input, output) {
         
         newdf <- subset(newdf, Date >= input$daterange4[1] & Date <= input$daterange4[2])
         
-        ggplot(newdf, aes(x=Date)) + 
-            geom_line(aes(y = x), color = "blue") + 
-            geom_line(aes(y = float_Billable_Hours), color="orange") +
-            ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
-            xlab('Date') + # for the x axis label
-            ylab('ConnectWise Hours (Blue), Float Hours(Orange)')
+        #ggplot(newdf, aes(x=Date)) + 
+            #geom_line(aes(y = x), color = "blue") + 
+            #geom_line(aes(y = float_Billable_Hours), color="orange") +
+            #ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
+            #xlab('Date') + # for the x axis label
+            #ylab('ConnectWise Hours (Blue), Float Hours(Orange)')
+        
+        
+        agg <- newdf
+        agg$Week <- as.Date(cut(agg$Date,breaks = "week",start.on.monday = TRUE))
+        
+        
+        agg <- agg %>% 
+          group_by(Week) %>%
+          summarise(across(c(x, float_Billable_Hours, Capacity), sum))
+        
+        
+        ggplot(agg, aes(as.Date(Week), agg)) + scale_x_date() +
+          geom_line(aes(y = x), color = "blue") + 
+          geom_line(aes(y = float_Billable_Hours), color="orange") +
+          ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
+          xlab('Week') + # for the x axis label
+          ylab('ConnectWise Hours (Blue), Float Hours(Orange)')
+        
     })
     
     output$table3 <- renderTable({
@@ -346,23 +391,26 @@ server <- function(input, output) {
         newdf$Date <- as.POSIXlt(newdf$Date,format="%Y-%m-%d")
         newdf <- newdf[ -c(4) ]
         newdf <- newdf %>% 
-            group_by(Date) %>%
-            summarise(across(c(x, float_Billable_Hours, Capacity), sum))
+          group_by(Date) %>%
+          summarise(across(c(x, float_Billable_Hours, Capacity), sum))
         
         newdf$Date <- ymd(newdf$Date)
-        min_date = as.Date(min(newdf$Date))
-        max_date = as.Date(max(newdf$Date))
-        
         newdf <- subset(newdf, Date >= input$daterange4[1] & Date <= input$daterange4[2])
-        newdf <- subset(newdf, Date >= min_date & Date <= max_date)
-        MeanSquaredError <- mse(newdf$x, newdf$float_Billable_Hours)
-        RootMeanSquaredError <- rmse(newdf$x, newdf$float_Billable_Hours)
+        #min_date = as.Date(min(newdf$Date))
+        #max_date = as.Date(max(newdf$Date))
+        colnames(newdf) <- c("Date","ConnectWise Hours", "Float Hours", "Capacity")
+        newdf$Date <- ymd(newdf$Date)
+        newdf <- newdf[ -c(4) ]
+        newdf$Date <- as.character(newdf$Date)
+        #MeanSquaredError <- mse(newdf$x, newdf$float_Billable_Hours)
+        #RootMeanSquaredError <- rmse(newdf$x, newdf$float_Billable_Hours)
         
-        metric <- c('Mean Squared Error','Root Mean Squared Error')
-        value <- c(MeanSquaredError, RootMeanSquaredError)
-        error_table <- data.frame(metric, value)
+        #metric <- c('Mean Squared Error','Root Mean Squared Error')
+        #value <- c(MeanSquaredError, RootMeanSquaredError)
+        #error_table <- data.frame(metric, value)
         
-        return(error_table)
+        #return(error_table)
+        return(newdf)
     })
 }
 

@@ -11,10 +11,17 @@ float <- aggregate( float[,4:379], float[,1:3], FUN = sum )
 float <- pivot_longer(float, c(4:379), names_to = 'Date', values_to = 'float_Billable_Hours')
 float$Date <- dmy(float$Date)
 float$Date <- ymd(float$Date)
+dds <- float
+dds$Department <- "All DDS"
+float <- rbind(float, dds)
+float <-float[!(float$Name == "Ikram Sarfraz"),]
 
-float_by_jobrole <- float[ -c(1, 3) ]
+
+float_by_jobrole <- float[ -c(1) ]
+float_by_jobrole <-float_by_jobrole[!(float_by_jobrole$Department == "All DDS"),]
 float_by_jobrole['Capacity'] = 8
-float_by_jobrole$`Job Title` <- paste(float$`Job Title`, " - ", float$`Department`)
+float_by_jobrole$`Job Title` <- paste(float_by_jobrole$`Job Title`, " - ", float_by_jobrole$`Department`)
+float_by_jobrole <- float_by_jobrole[ -c(2) ]
 float_by_jobrole <- aggregate( float_by_jobrole[,3:4], float_by_jobrole[,1:2], FUN = sum )
 
 #connectwise <- read_csv("/Users/jarellano/Desktop/TimeEntries3.csv", trim_ws = TRUE)
