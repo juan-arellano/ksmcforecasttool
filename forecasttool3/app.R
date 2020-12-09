@@ -1,51 +1,30 @@
 library(tidyverse)
 library(shiny)
 library(shinymanager)
-#library(shinyjs)
 library(dplyr)
 library(data.table)
 library(lubridate)
 library(xts)
 library(forecast)
-#library(prophet)
 library(tidyr)
 library(Metrics)
 library(rsconnect)
+library(imputeTS)
 
 float <- read_csv("float.csv")
 float_by_jobrole <- read_csv("float_by_jobrole.csv")
 connectwise <- read_csv("connectwise.csv")
 
 credentials <- data.frame(
-    user = c("jarellano", "awheeler", "mschwarz"), # mandatory
-    password = c("ksmc1234", "728hb43m", "6uten4zu") # mandatory
-    #start = c("2019-04-15"), # optinal (all others)
-    #expire = c(NA, "2019-12-31"),
-    #admin = c(FALSE, TRUE),
-    #comment = "Simple and secure authentification mechanism 
-  #for single ‘Shiny’ applications.",
-    #stringsAsFactors = FALSE
+    user = c("jarellano", "awheeler", "mschwarz"), 
+    password = c("ksmc1234", "728hb43m", "6uten4zu")
 )
 
-#user_base <- data.frame(
-    #user = c("jarellano", "awheeler", "mschwarz"),
-    #password = c("pass1", "pass2", "pass3"), 
-    #permissions = c("admin", "standard", "standard"),
-    #name = c("Juan", "Amrutha", "Michael"),
-    #stringsAsFactors = FALSE
-#)
-
-
+#req(credentials()$user_auth)
+person_data <- subset(float, float$Name == "Juan Arellano")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(    
-    
-    # must turn shinyjs on
-    #shinyjs::useShinyjs(),
-    # add logout button UI 
-    # add login panel UI function
-    #shinyauthr::loginUI(id = "login"),
-
     
     # Give the page a title
     titlePanel("DDS Forecasting Tool"),
@@ -153,26 +132,9 @@ server <- function(input, output) {
         reactiveValuesToList(res_auth)
     })
     
-    # call the logout module with reactive trigger to hide/show
-    #logout_init <- callModule(shinyauthr::logout, 
-                              #id = "logout", 
-                              #active = reactive(credentials()$user_auth))
-    
-    # call login module supplying data frame, user and password cols
-    # and reactive trigger
-    #credentials <- callModule(shinyauthr::login, 
-                              #id = "login", 
-                              #data = user_base,
-                              #user_col = user,
-                              #pwd_col = password,
-                              #log_out = reactive(logout_init()))
-    
-    # pulls out the user information returned from login module
-    #user_data <- reactive({credentials()$info})
     
         
     output$googleSheet <- renderUI({
-        #req(credentials()$user_auth)
             tags$iframe(id = "googleSheet",
                         src = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeNg9nC_d-wNDFelmGwDuh2BAxxzkEvD3IA3VZmMc7AJ0Q-DGdx-bDlrx5KK87ZV9e558LNSyy5xHd/pubhtml?gid=0&amp;single=true&amp;widget=true&amp;headers=false",
                         width = 1024,
@@ -183,7 +145,6 @@ server <- function(input, output) {
     
     # Fill in the spot we created for a plot
     output$phonePlot <- renderPlot({
-        #req(credentials()$user_auth)
         # Filter to person of interest
         person_data <- subset(float, float$Name == input$person_id)
         person_data['Capacity'] = 8
@@ -221,9 +182,6 @@ server <- function(input, output) {
     })
     
     output$jobRolePlot <- renderPlot({
-        #req(credentials()$user_auth)
-        # Filter to person of interest
-        
         jobrole_data <- subset(float_by_jobrole, float_by_jobrole$`Job Title` == input$job_id)
         jobrole_data <- subset(jobrole_data, Date >= input$daterange2[1] & Date <= input$daterange2[2])
         
@@ -234,7 +192,6 @@ server <- function(input, output) {
     
     
     output$table <- renderTable({
-        #req(credentials()$user_auth)
         employee_table <- float
         employee_table$`Job Title` <- paste(employee_table$`Job Title`, " - ", employee_table$`Department`)
         employee_table <- subset(employee_table, employee_table$`Job Title` == input$job_id)
@@ -245,7 +202,6 @@ server <- function(input, output) {
     
     
     output$fcwPlot <- renderPlot({
-        #req(credentials()$user_auth)
         person_data <- subset(float, float$Name == input$person_id3)
         person_data <- person_data[ -c(1:3) ]
         person_data['Capacity'] = 8
@@ -255,20 +211,14 @@ server <- function(input, output) {
         colnames(connectwise_person_data) <- c("Date","Connectwise Billable Hours")
         min_date = min(connectwise_person_data$Date)
         
-        newdf <- right_join(connectwise_person_data, person_data, by=c("Date"))
-        newdf <- subset(newdf, Date >= min_date)
+        newdf <- merge(x = connectwise_person_data, y = person_data, by=c("Date"), all = TRUE)
+        newdf <- subset(newdf, Date > as.Date(min_date) )
         newdf$Date <- as.POSIXlt(newdf$Date,format="%Y-%m-%d")
-        newdf$`Connectwise Billable Hours` <-  na.interp(newdf$`Connectwise Billable Hours`)
+        newdf$`Connectwise Billable Hours` <- na_kalman(newdf$`Connectwise Billable Hours`)
         newdf$Date <- ymd(newdf$Date)
         
         newdf <- subset(newdf, Date >= input$daterange3[1] & Date <= input$daterange3[2])
         
-        #ggplot(newdf, aes(x=Date)) + 
-            #geom_line(aes(y = `Connectwise Billable Hours`), color = "blue") + 
-            #geom_line(aes(y = float_Billable_Hours), color="orange") +
-            #ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
-            #xlab('Date') + # for the x axis label
-            #ylab('ConnectWise Hours (Blue), Float Hours(Orange)')
         
         agg <- newdf
         agg$Week <- as.Date(cut(agg$Date,breaks = "week",start.on.monday = TRUE))
@@ -285,6 +235,7 @@ server <- function(input, output) {
           ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
           xlab('Date') + # for the x axis label
           ylab('ConnectWise Hours (Blue), Float Hours(Orange)')
+        
     })
     
     output$table2 <- renderTable({
@@ -301,25 +252,13 @@ server <- function(input, output) {
         person_data$Date <- as.Date(person_data$Date)
         
         min_date = as.Date(min(connectwise_person_data$Date))
-        max_date = as.Date(max(connectwise_person_data$Date))
-        
-        newdf <- right_join(connectwise_person_data, person_data, by=c("Date"))
+
+        newdf <- merge(x = connectwise_person_data, y = person_data, by=c("Date"), all = TRUE)
         newdf <- subset(newdf, Date >= input$daterange3[1] & Date <= input$daterange3[2])
-        newdf <- subset(newdf, Date >= min_date & Date <= max_date)
-        newdf[is.na(newdf)] = 0
+        newdf <- subset(newdf, Date >= min_date)
+        newdf$"Connectwise Billable Hours" <- na_kalman(newdf$"Connectwise Billable Hours")
         
-        #MeanSquaredError <- mse(newdf$"Connectwise Billable Hours", newdf$float_Billable_Hours)
-        #RootMeanSquaredError <- rmse(newdf$"Connectwise Billable Hours", newdf$float_Billable_Hours)
-        
-        #metric <- c('Mean Squared Error','Root Mean Squared Error')
-        #value <- c(MeanSquaredError, RootMeanSquaredError)
-        #error_table <- data.frame(metric, value)
-        
-        #return(error_table)
-        
-        #req(credentials()$user_auth)
-        
-        colnames(newdf) <- c("Date","ConnectWise Hours", "Float Hours")
+       colnames(newdf) <- c("Date","ConnectWise Hours", "Float Hours")
         newdf$Date <- ymd(newdf$Date)
         newdf$Date <- as.character(newdf$Date)
         newdf <- unique(newdf)
@@ -327,41 +266,26 @@ server <- function(input, output) {
     })
     
     output$fcwPlot2 <- renderPlot({
-        #req(credentials()$user_auth)
         team_data <- subset(float, float$Department == input$team_id)
         team_data <- team_data[ -c(2) ]
         team_data['Capacity'] = 8
         connectwise_team_data <- connectwise[(connectwise$Name %in% team_data$Name), ]
-        newdf <- inner_join(connectwise_team_data, team_data, by=c("Date", "Name"))
+        min_date = as.Date(min(connectwise_team_data$Date))
+        
+        newdf <- merge(x = connectwise_team_data, y = team_data, by=c("Date", "Name"), all = TRUE)
         newdf$Date <- as.POSIXlt(newdf$Date,format="%Y-%m-%d")
         newdf <- newdf[ -c(4) ]
-        
-        #newdf <- newdf %>%
-        #group_by(Name, Date) %>%
-        #mutate(x <- na.interp(x))    
-        #proof <- newdf %>%
-        #group_by(Name, Date) %>%
-        #na.interp(x)
-        #proof <- newdf %>%
-        #group_by(Name) %>%
-        #mutate(ValueInterp = na.interp(x))
-        #min_date = min(connectwise_person_data$Date)
+        newdf[is.na(newdf)] <- 0
         
         newdf <- newdf %>% 
-            group_by(Date) %>%
-            summarise(across(c(x, float_Billable_Hours, Capacity), sum))
+          group_by(Date) %>%
+          summarise(across(c(x, float_Billable_Hours, Capacity), sum))
         
+        newdf$x[newdf$x == 0] <- NA
+        newdf$x <- na_kalman(newdf$x)
         newdf$Date <- ymd(newdf$Date)
         
         newdf <- subset(newdf, Date >= input$daterange4[1] & Date <= input$daterange4[2])
-        
-        #ggplot(newdf, aes(x=Date)) + 
-            #geom_line(aes(y = x), color = "blue") + 
-            #geom_line(aes(y = float_Billable_Hours), color="orange") +
-            #ggtitle("Projected Billable Hours vs ConnectWise Actual Hours") + # for the main title
-            #xlab('Date') + # for the x axis label
-            #ylab('ConnectWise Hours (Blue), Float Hours(Orange)')
-        
         
         agg <- newdf
         agg$Week <- as.Date(cut(agg$Date,breaks = "week",start.on.monday = TRUE))
@@ -382,17 +306,21 @@ server <- function(input, output) {
     })
     
     output$table3 <- renderTable({
-        #req(credentials()$user_auth)
         team_data <- subset(float, float$Department == input$team_id)
         team_data <- team_data[ -c(2) ]
         team_data['Capacity'] = 8
         connectwise_team_data <- connectwise[(connectwise$Name %in% team_data$Name), ]
-        newdf <- inner_join(connectwise_team_data, team_data, by=c("Date", "Name"))
+        min_date = as.Date(min(connectwise_team_data$Date))
+        newdf <- merge(x = connectwise_team_data, y = team_data, by=c("Date", "Name"), all = TRUE)
         newdf$Date <- as.POSIXlt(newdf$Date,format="%Y-%m-%d")
         newdf <- newdf[ -c(4) ]
+        newdf[is.na(newdf)] <- 0
         newdf <- newdf %>% 
           group_by(Date) %>%
           summarise(across(c(x, float_Billable_Hours, Capacity), sum))
+        
+        newdf$x[newdf$x == 0] <- NA
+        newdf$x <- na_kalman(newdf$x)
         
         newdf$Date <- ymd(newdf$Date)
         newdf <- subset(newdf, Date >= input$daterange4[1] & Date <= input$daterange4[2])

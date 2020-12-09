@@ -3,6 +3,58 @@ rm(list = ls())
 library(tidyverse)
 library(dplyr)
 
+
+
+###Float API  LOGIN
+query <- "https://api.float.com/v3/people"
+getdata<-GET(url = query, user_agent("Juan's Data Pull (jarellano@ksmconsulting.com)"), add_headers(Authorization = "Bearer d6a28e0869479b80OM/zSctRJWMK1U2u+wXlgtkgt9zeSU1olcoRViW1Iz8="))
+df = fromJSON(content(getdata,type="text"))
+
+query <- "https://api.float.com/v3/tasks?start_date=2020-10-15&end_date=2021-05-31"
+getdata<-GET(url = query, user_agent("Juan's Data Pull (jarellano@ksmconsulting.com)"), add_headers(Authorization = "Bearer d6a28e0869479b80OM/zSctRJWMK1U2u+wXlgtkgt9zeSU1olcoRViW1Iz8="))
+sched = fromJSON(content(getdata,type="text"))
+
+## ConnectWise Server Access
+library(odbc)
+con <- dbConnect(odbc(),
+                 Driver = "ODBC Driver 17 for SQL Server",
+                 Server = "KSMC-SQL01",
+                 Database = "cwdbwh")
+
+db <- DBI::dbConnect(odbc::odbc(),
+                     Driver = 'ODBC Driver 17 for SQL Server',
+                     Server = 'KSMC-SQL01',
+                     Database = "cwdbwh",
+                     trusted_connection = 'yes',
+                     uid = "KSMC/jarellano",
+                     pwd ="TopsyTurvy123$")
+
+library(odbc)
+library(DBI)
+con <- DBI::dbConnect(odbc::odbc(),
+                      Driver   = "ODBC Driver 17 for SQL Server",
+                      Server   = "KSMC-SQL01",
+                      Database = "cwdbwh",
+                      UID      = "KSMC\\svcsql",
+                      Trusted_Connection = "yes",
+                      Port     = 1433)
+
+library(DBI)
+
+con <- dbConnect(odbc::odbc(), 
+                 .connection_string = 'driver="ODBC Driver 17 for SQL Server";server="KSMC-SQL01";database="cwdbwh";trusted_connection=true')
+
+# SQL Query
+#SELECT pbi.time.[Member_RecID]
+#, First_Name
+#, Last_Name
+#,[Date_Start]
+#,[Billable_Hrs]
+#FROM [cwdbwh].[pbi].[time]
+#LEFT JOIN Member 
+#ON pbi.time.Member_RecID = member.Member_RecID
+
+
 #float <- read_csv("/Users/jarellano/Desktop/float-people-20201106-134128-376d.csv", skip = 5)
 float <- as.data.frame(float)
 float <- float[!(is.na(float$`Job Title`)), ]
@@ -24,8 +76,9 @@ float_by_jobrole$`Job Title` <- paste(float_by_jobrole$`Job Title`, " - ", float
 float_by_jobrole <- float_by_jobrole[ -c(2) ]
 float_by_jobrole <- aggregate( float_by_jobrole[,3:4], float_by_jobrole[,1:2], FUN = sum )
 
-#connectwise <- read_csv("/Users/jarellano/Desktop/TimeEntries3.csv", trim_ws = TRUE)
-connectwise <- connectwise[ , c(3:6)]
+
+#connectwise <- read_csv("/Users/jarellano/Desktop/TimeSeries4.csv", trim_ws = TRUE)
+connectwise <- connectwise[ , c(2:5)]
 colnames(connectwise) <- c("first_Name","last_Name", "Date", "billable_Hours")
 connectwise$Name <- paste(connectwise$first_Name, connectwise$last_Name)
 connectwise <- connectwise[ , c(3:5)]
