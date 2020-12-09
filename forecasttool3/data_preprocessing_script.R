@@ -27,7 +27,7 @@ db <- DBI::dbConnect(odbc::odbc(),
                      Database = "cwdbwh",
                      trusted_connection = 'yes',
                      uid = "KSMC/jarellano",
-                     pwd ="TopsyTurvy123$")
+                     pwd ="*********")
 
 library(odbc)
 library(DBI)
