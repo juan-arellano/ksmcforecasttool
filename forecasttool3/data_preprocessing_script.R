@@ -2,47 +2,47 @@ rm(list = ls())
 
 library(tidyverse)
 library(dplyr)
-
+library(lubridate)
 
 
 ###Float API  LOGIN
-query <- "https://api.float.com/v3/people"
-getdata<-GET(url = query, user_agent("Juan's Data Pull (jarellano@ksmconsulting.com)"), add_headers(Authorization = "Bearer d6a28e0869479b80OM/zSctRJWMK1U2u+wXlgtkgt9zeSU1olcoRViW1Iz8="))
-df = fromJSON(content(getdata,type="text"))
+#query <- "https://api.float.com/v3/people"
+#getdata<-GET(url = query, user_agent("Juan's Data Pull (jarellano@ksmconsulting.com)"), add_headers(Authorization = "Bearer d6a28e0869479b80OM/zSctRJWMK1U2u+wXlgtkgt9zeSU1olcoRViW1Iz8="))
+#df = fromJSON(content(getdata,type="text"))
 
-query <- "https://api.float.com/v3/tasks?start_date=2020-10-15&end_date=2021-05-31"
-getdata<-GET(url = query, user_agent("Juan's Data Pull (jarellano@ksmconsulting.com)"), add_headers(Authorization = "Bearer d6a28e0869479b80OM/zSctRJWMK1U2u+wXlgtkgt9zeSU1olcoRViW1Iz8="))
-sched = fromJSON(content(getdata,type="text"))
+#query <- "https://api.float.com/v3/tasks?start_date=2020-10-15&end_date=2021-05-31"
+#getdata<-GET(url = query, user_agent("Juan's Data Pull (jarellano@ksmconsulting.com)"), add_headers(Authorization = "Bearer d6a28e0869479b80OM/zSctRJWMK1U2u+wXlgtkgt9zeSU1olcoRViW1Iz8="))
+#sched = fromJSON(content(getdata,type="text"))
 
 ## ConnectWise Server Access
-library(odbc)
-con <- dbConnect(odbc(),
-                 Driver = "ODBC Driver 17 for SQL Server",
-                 Server = "KSMC-SQL01",
-                 Database = "cwdbwh")
+#library(odbc)
+#con <- dbConnect(odbc(),
+#                 Driver = "ODBC Driver 17 for SQL Server",
+#                 Server = "KSMC-SQL01",
+#                 Database = "cwdbwh")
 
-db <- DBI::dbConnect(odbc::odbc(),
-                     Driver = 'ODBC Driver 17 for SQL Server',
-                     Server = 'KSMC-SQL01',
-                     Database = "cwdbwh",
-                     trusted_connection = 'yes',
-                     uid = "KSMC/jarellano",
-                     pwd ="*********")
+#db <- DBI::dbConnect(odbc::odbc(),
+ #                    Driver = 'ODBC Driver 17 for SQL Server',
+ #                     Server = 'KSMC-SQL01',
+  #                   Database = "cwdbwh",
+  ##                   trusted_connection = 'yes',
+   #                  uid = "KSMC/jarellano",
+  #                   pwd ="*********")
 
-library(odbc)
-library(DBI)
-con <- DBI::dbConnect(odbc::odbc(),
-                      Driver   = "ODBC Driver 17 for SQL Server",
-                      Server   = "KSMC-SQL01",
-                      Database = "cwdbwh",
-                      UID      = "KSMC\\svcsql",
-                      Trusted_Connection = "yes",
-                      Port     = 1433)
+#library(odbc)
+#library(DBI)
+#con <- DBI::dbConnect(odbc::odbc(),
+ #                     Driver   = "ODBC Driver 17 for SQL Server",
+  #                    Server   = "KSMC-SQL01",
+   #                   Database = "cwdbwh",
+    #                  UID      = "KSMC\\svcsql",
+     #                 Trusted_Connection = "yes",
+      #                Port     = 1433)
 
-library(DBI)
+#library(DBI)
 
-con <- dbConnect(odbc::odbc(), 
-                 .connection_string = 'driver="ODBC Driver 17 for SQL Server";server="KSMC-SQL01";database="cwdbwh";trusted_connection=true')
+#con <- dbConnect(odbc::odbc(), 
+ #                .connection_string = 'driver="ODBC Driver 17 for SQL Server";server="KSMC-SQL01";database="cwdbwh";trusted_connection=true')
 
 # SQL Query
 #SELECT pbi.time.[Member_RecID]
@@ -55,12 +55,18 @@ con <- dbConnect(odbc::odbc(),
 #ON pbi.time.Member_RecID = member.Member_RecID
 
 
-#float <- read_csv("/Users/jarellano/Desktop/float-people-20201106-134128-376d.csv", skip = 5)
+#float <- read_csv("/Users/jarellano/Desktop/float-people-20201218-101425-517d.csv", skip = 5)
 float <- as.data.frame(float)
 float <- float[!(is.na(float$`Job Title`)), ]
 float <- float[ -c(4:8) ]
-float <- aggregate( float[,4:379], float[,1:3], FUN = sum )
-float <- pivot_longer(float, c(4:379), names_to = 'Date', values_to = 'float_Billable_Hours')
+#
+#
+# REMEMBER YOU HAVE TO CHANGE THIS EACH TIME YOU UPLOAD A NEW FLOAT FILE
+#
+#
+#
+float <- aggregate( float[,4:520], float[,1:3], FUN = sum )
+float <- pivot_longer(float, c(4:520), names_to = 'Date', values_to = 'float_Billable_Hours')
 float$Date <- dmy(float$Date)
 float$Date <- ymd(float$Date)
 dds <- float

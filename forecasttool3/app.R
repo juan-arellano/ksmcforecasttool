@@ -39,10 +39,10 @@ ui <- fluidPage(
                         choices= unique(float$Name)),
             
             dateRangeInput("daterange", "Date range:",
-                           start  = "2020-10-05",
-                           end    = "2020-10-19",
+                           start  = "2020-12-05",
+                           end    = "2020-12-19",
                            min    = "2020-01-01",
-                           max    = "2021-01-10",
+                           max    = "2021-05-31",
                            format = "mm/dd/yy",
                            separator = " - "),
             
@@ -57,10 +57,10 @@ ui <- fluidPage(
                         choices= unique(float_by_jobrole$`Job Title`)),
             
             dateRangeInput("daterange2", "Date range:",
-                           start  = "2020-10-05",
-                           end    = "2020-10-19",
+                           start  = "2020-12-05",
+                           end    = "2020-12-19",
                            min    = "2020-01-01",
-                           max    = "2021-01-10",
+                           max    = "2021-05-31",
                            format = "mm/dd/yy",
                            separator = " - "),
             hr(),
@@ -71,10 +71,10 @@ ui <- fluidPage(
             
             
             dateRangeInput("daterange3", "Date range:",
-                           start  = "2020-10-05",
-                           end    = "2020-10-19",
+                           start  = "2020-12-05",
+                           end    = "2020-12-19",
                            min    = "2020-01-01",
-                           max    = "2021-01-10",
+                           max    = "2021-05-31",
                            format = "mm/dd/yy",
                            separator = " - "),
             
@@ -85,10 +85,10 @@ ui <- fluidPage(
                         choices= unique(float$Department)),
             
             dateRangeInput("daterange4", "Date range:",
-                           start  = "2020-10-05",
-                           end    = "2020-10-19",
+                           start  = "2020-12-05",
+                           end    = "2020-12-19",
                            min    = "2020-01-01",
-                           max    = "2021-01-10",
+                           max    = "2021-05-31",
                            format = "mm/dd/yy",
                            separator = " - ")
             
