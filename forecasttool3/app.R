@@ -20,14 +20,20 @@ credentials <- data.frame(
     password = c("ksmc1234", "728hb43m", "6uten4zu")
 )
 
-#req(credentials()$user_auth)
-person_data <- subset(float, float$Name == "Juan Arellano")
+
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(    
-    
+
     # Give the page a title
     titlePanel("DDS Forecasting Tool"),
+    
+    h4(
+        "Last updated: ",
+        # We give textOutput a span container to make it appear
+        # right in the h4, without starting a new line.
+        textOutput("currentTime", container = span)
+    ),
     
     # Generate a row with a sidebar
     sidebarLayout( 
@@ -339,6 +345,12 @@ server <- function(input, output) {
         
         #return(error_table)
         return(newdf)
+    })
+    output$currentTime <- renderText({
+        # invalidateLater causes this output to automatically
+        # become invalidated when input$interval milliseconds
+        # have elapsed
+        return('12/21/2020')
     })
 }
 
