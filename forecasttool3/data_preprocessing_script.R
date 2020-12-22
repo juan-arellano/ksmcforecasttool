@@ -55,7 +55,7 @@ library(lubridate)
 #ON pbi.time.Member_RecID = member.Member_RecID
 
 
-#float <- read_csv("/Users/jarellano/Desktop/float-people-20201221-112642-517d.csv", skip = 5)
+#float <- read_csv("/Users/jarellano/Desktop/float-people-20201222-133428-517d.csv", skip = 5)
 float <- as.data.frame(float)
 float <- float[!(is.na(float$`Job Title`)), ]
 float <- float[ -c(4:8) ]
