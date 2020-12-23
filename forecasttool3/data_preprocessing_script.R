@@ -55,7 +55,7 @@ library(lubridate)
 #ON pbi.time.Member_RecID = member.Member_RecID
 
 
-#float <- read_csv("/Users/jarellano/Desktop/float-people-20201222-133428-517d.csv", skip = 5)
+# float <- read_csv("/Users/jarellano/Desktop/float.csv", skip = 5)
 float <- as.data.frame(float)
 float <- float[!(is.na(float$`Job Title`)), ]
 float <- float[ -c(4:8) ]
@@ -83,7 +83,7 @@ float_by_jobrole <- float_by_jobrole[ -c(2) ]
 float_by_jobrole <- aggregate( float_by_jobrole[,3:4], float_by_jobrole[,1:2], FUN = sum )
 
 
-#connectwise <- read_csv("/Users/jarellano/Desktop/TimeSeries4.csv", trim_ws = TRUE)
+# connectwise <- read_csv("/Users/jarellano/Desktop/TimeSeries4.csv", trim_ws = TRUE)
 connectwise <- connectwise[ , c(2:5)]
 colnames(connectwise) <- c("first_Name","last_Name", "Date", "billable_Hours")
 connectwise$Name <- paste(connectwise$first_Name, connectwise$last_Name)
@@ -98,6 +98,6 @@ connectwise$Date = as.Date(connectwise$Date,format="%m/%d/%Y")
 connectwise$Date <- ymd(connectwise$Date)
 connectwise <- connectwise[(connectwise$Name %in% float$Name), ]
 
-#write.csv(connectwise,"/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool3/connectwise.csv", row.names = FALSE)
-#write.csv(float,"/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool3/float.csv", row.names = FALSE)
-#write.csv(float_by_jobrole,"/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool3/float_by_jobrole.csv", row.names = FALSE)
+# write.csv(connectwise,"/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool3/connectwise.csv", row.names = FALSE)
+# write.csv(float,"/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool3/float.csv", row.names = FALSE)
+# write.csv(float_by_jobrole,"/Users/jarellano/Documents/GitHub/ksmcforecasttool/forecasttool3/float_by_jobrole.csv", row.names = FALSE)
