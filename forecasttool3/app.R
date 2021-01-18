@@ -350,7 +350,7 @@ server <- function(input, output) {
         # invalidateLater causes this output to automatically
         # become invalidated when input$interval milliseconds
         # have elapsed
-        return('1/13/2021')
+        return('1/18/2021')
     })
 }
 
